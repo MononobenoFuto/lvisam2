@@ -189,9 +189,36 @@ void img_callback(const sensor_msgs::ImageConstPtr &img_msg)
 
         // get feature depth from lidar point cloud
         pcl::PointCloud<PointType>::Ptr depth_cloud_temp(new pcl::PointCloud<PointType>());
+
+        // mtx_lidar.lock();
+        // *depth_cloud_temp = *depthCloud;
+        // mtx_lidar.unlock();
+
+        
+        
+        while (!timeQueue.empty())
+        {
+            if (cur_img_time - timeQueue.front() > 5.0)
+            {
+                cloudQueue.pop_front();
+                timeQueue.pop_front();
+            } else {
+                break;
+            }
+        }
+
         mtx_lidar.lock();
-        *depth_cloud_temp = *depthCloud;
+        for (int i = 0; i < (int)cloudQueue.size() && timeQueue[i] - cur_img_time < 2.0; ++i)
+            *depth_cloud_temp += cloudQueue[i];
+
+        pcl::PointCloud<PointType>::Ptr depthCloudDS(new pcl::PointCloud<PointType>());
+        static pcl::VoxelGrid<PointType> downSizeFilter;
+        downSizeFilter.setLeafSize(0.2, 0.2, 0.2);
+        downSizeFilter.setInputCloud(depth_cloud_temp);
+        downSizeFilter.filter(*depthCloudDS);
+        *depth_cloud_temp = *depthCloudDS;
         mtx_lidar.unlock();
+
 
         sensor_msgs::ChannelFloat32 depth_of_points = depthRegister->get_depth(img_msg->header.stamp, show_img, depth_cloud_temp, trackerData[0].m_camera, feature_points->points);
         feature_points->channels.push_back(depth_of_points);
@@ -373,29 +400,29 @@ void lidar_callback(const sensor_msgs::PointCloud2ConstPtr& laser_msg)
     timeQueue.push_back(timeScanCur);
 
     // 7. pop old cloud
-    while (!timeQueue.empty())
-    {
-        if (timeScanCur - timeQueue.front() > 5.0)
-        {
-            cloudQueue.pop_front();
-            timeQueue.pop_front();
-        } else {
-            break;
-        }
-    }
+    // while (!timeQueue.empty())
+    // {
+    //     if (timeScanCur - timeQueue.front() > 5.0)
+    //     {
+    //         cloudQueue.pop_front();
+    //         timeQueue.pop_front();
+    //     } else {
+    //         break;
+    //     }
+    // }
 
-    std::lock_guard<std::mutex> lock(mtx_lidar);
-    // 8. fuse global cloud
-    depthCloud->clear();
-    for (int i = 0; i < (int)cloudQueue.size(); ++i)
-        *depthCloud += cloudQueue[i];
+    // std::lock_guard<std::mutex> lock(mtx_lidar);
+    // // 8. fuse global cloud
+    // depthCloud->clear();
+    // for (int i = 0; i < (int)cloudQueue.size(); ++i)
+    //     *depthCloud += cloudQueue[i];
 
-    // 9. downsample global cloud
-    pcl::PointCloud<PointType>::Ptr depthCloudDS(new pcl::PointCloud<PointType>());
-    downSizeFilter.setLeafSize(0.2, 0.2, 0.2);
-    downSizeFilter.setInputCloud(depthCloud);
-    downSizeFilter.filter(*depthCloudDS);
-    *depthCloud = *depthCloudDS;
+    // // 9. downsample global cloud
+    // pcl::PointCloud<PointType>::Ptr depthCloudDS(new pcl::PointCloud<PointType>());
+    // downSizeFilter.setLeafSize(0.2, 0.2, 0.2);
+    // downSizeFilter.setInputCloud(depthCloud);
+    // downSizeFilter.filter(*depthCloudDS);
+    // *depthCloud = *depthCloudDS;
 }
 
 // extract time stamp

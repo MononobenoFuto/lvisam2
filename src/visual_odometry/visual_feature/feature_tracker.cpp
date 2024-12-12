@@ -319,6 +319,8 @@ void FeatureTracker::readImage(const cv::Mat &_img, double _cur_time, uint seq)
         //20241113 direct use gt pose
         std::string flow_name = intToStringWithLeadingZeros(cur_seq) + ".npy";
         cnpy::NpyArray flow_label = cnpy::npy_load("/media/nyamori/8856D74A56D73820/vslam/dataset/kitti/2011_09_30/flow/" + flow_name); // origin sam
+        // cnpy::NpyArray flow_label = cnpy::npy_load("/mnt/e/kitti/npy04/" + flow_name); // origin sam
+        
         // cnpy::NpyArray flow_label = cnpy::npy_load("/media/nyamori/8856D74A56D73820/vslam/dataset/kitti/20241031_flowgt/flow/" + flow_name);
 
 
